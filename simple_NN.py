@@ -5,6 +5,7 @@ import keras
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.preprocessing import StandardScaler
 import visualizations as vis
+import argparse
 
 import re
 import logging
@@ -66,7 +67,7 @@ def simple_one_layer_NN():
         print("Accuracy:", accuracy.eval({x: np.array(validate_data), y: np.eye(10)[validate_label]}))
 
 
-def five_NN_model_to_predict(learning_rate = 0.001, n_epochs = 2000, batch_size = 100):
+def five_NN_model_to_predict(learning_rate = 0.001, n_epochs = 100, batch_size = 100):
     # here we build a two layers NN model and test on validation set, you may improve it to a CV version
     # n_neurons_1 : number of neurons in the first layer
     # n_neurons_2  : number of neurons in the second layer
@@ -145,7 +146,7 @@ def five_NN_model_to_predict(learning_rate = 0.001, n_epochs = 2000, batch_size 
         return np.argmax(predict_output, axis= 1)
 
 
-def cnn_model(learning_rate = 0.001, n_epochs = 50, batch_size = 100):
+def cnn_model(learning_rate = 0.001, n_epochs = 50, batch_size = 100, drop_out = 0.75):
     # what args do we need ? - -|
     #NUM_ITERS=5000
     #DISPLAY_STEP=100
@@ -259,7 +260,7 @@ def cnn_model(learning_rate = 0.001, n_epochs = 50, batch_size = 100):
                 X_batch = np.array(all_train[iteration * batch_size : min((iteration+1) * batch_size, len(train_data))])
                 y_batch = np.array(all_label[iteration * batch_size : min((iteration+1) * batch_size, len(train_label))])
                 
-                sess.run(training_op, feed_dict={X:np.reshape(X_batch, (len(X_batch), 28, 28, 1)), y:y_batch, pkeep: 0.88})
+                sess.run(training_op, feed_dict={X:np.reshape(X_batch, (len(X_batch), 28, 28, 1)), y:y_batch, pkeep: drop_out})
             
             acc_trn, loss_trn, w, b = sess.run([accuracy, loss, allweights, allbiases], feed_dict={X:np.reshape(X_batch, (len(X_batch), 28, 28, 1)), y:y_batch, pkeep: 1.0})
             
@@ -279,13 +280,20 @@ def cnn_model(learning_rate = 0.001, n_epochs = 50, batch_size = 100):
             #                                   y:np.array(validate_label), pkeep: 1.0})
             #print(epoch, 'Train accuracy:', acc_train, 'Test accuracy:', acc_test)
         
-        title = "MNIST_3.0 5 layers 3 conv"
+        title = "MNIST_3.0 5 layers 3 conv. epoch={},batch_size={},learning_rate={},drop_out={}".format(n_epochs, batch_size, learning_rate, drop_out)
         vis.losses_accuracies_plots(train_losses,train_acc,test_losses, test_acc,title,n_epochs)
 
-        predict_output = sess.run(output,feed_dict={X:np.array(mnist_test)})
+        predict_output = sess.run(Y,feed_dict={X:np.reshape(np.array(mnist_test), (len(mnist_test), 28, 28, 1))})
         return np.argmax(predict_output, axis= 1)
 
 if __name__ == "__main__":
+    
+    parser = argparse.ArgumentParser(description='manual to this script')
+    parser.add_argument('--nepochs', type=int, default = 50)
+    parser.add_argument('--batch-size', type=int, default=100)
+    parser.add_argument('--learning-rate', type=float, default=0.001)
+    parser.add_argument('--drop-out', type=float, default=0.75)
+    args = parser.parse_args()
 
     mnist_train = pd.read_csv("all/train.csv")
     mnist_test = pd.read_csv("all/test.csv")
@@ -310,7 +318,7 @@ if __name__ == "__main__":
     all_label = np.concatenate([train_label, validate_label])
 
     #prediction = five_NN_model_to_predict()
-    prediction = cnn_model()
+    prediction = cnn_model(learning_rate = args.learning_rate, n_epochs = args.nepochs, batch_size = args.batch_size, drop_out = args.drop_out)
 
     df = pd.DataFrame({'ImageId': [i for i in range(1,len(prediction)+1)],
                   'Label': prediction})
