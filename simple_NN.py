@@ -183,6 +183,7 @@ def cnn_model(learning_rate = 0.001, n_epochs = 50, batch_size = 100, drop_out =
     
     FC4 = 256  # fully connected layer
     
+    # stride: 步幅, padding: 填充， "SAME"将detector结果填充为原向量维度
     stride = 1
     k = 2
     # conv 1
